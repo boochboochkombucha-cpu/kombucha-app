@@ -1,5 +1,8 @@
-import streamlit as st
+"""
+BoochBooch Wholesale Portal - Streamlit Application
+"""
 import datetime
+import streamlit as st
 
 # Page configuration
 st.set_page_config(page_title="BoochBooch Wholesale Portal", page_icon="🍺", layout="centered")
@@ -58,11 +61,11 @@ now = datetime.datetime.now()
 hour = now.hour
 
 if hour < 12:
-    greeting_text = "Good Morning, Let's Brew!"
+    GREETING_TEXT = "Good Morning, Let's Brew!"
 elif hour < 18:
-    greeting_text = "Good Afternoon, Keep Flowing!"
+    GREETING_TEXT = "Good Afternoon, Keep Flowing!"
 else:
-    greeting_text = "Good Evening, Cheers!"
+    GREETING_TEXT = "Good Evening, Cheers!"
 
 # Header
 st.markdown(f"""
@@ -75,7 +78,7 @@ st.markdown(f"""
             <p class="subtitle">Wholesale Portal</p>
         </div>
     </div>
-    <p class="greeting">{greeting_text}</p>
+    <p class="greeting">{GREETING_TEXT}</p>
 """, unsafe_allow_html=True)
 
 # Tabs
