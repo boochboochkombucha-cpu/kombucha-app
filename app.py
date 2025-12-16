@@ -1,192 +1,247 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Button } from './ui/Button';
-import { Input, Select } from './ui/Input';
-import { StorageService } from '../services/storage';
-import { Order, OrderStatus } from '../types';
-import { Lock, TrendingUp, DollarSign, Settings } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import streamlit as st
+import pandas as pd
+from pyairtable import Api
+from datetime import datetime
 
-const COLORS = ['#FDBA74', '#FB923C', '#F97316', '#EA580C'];
+# --- PAGE CONFIGURATION ---
+st.set_page_config(page_title="BoochBooch Wholesale", page_icon="🍺", layout="centered")
 
-export const AdminTab: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  
-  const [editStatus, setEditStatus] = useState<OrderStatus>('Pending');
-  const [editDate, setEditDate] = useState('');
+# --- CONNECT TO AIRTABLE ---
+try:
+    api = Api(st.secrets["AIRTABLE_API_KEY"])
+    table = api.table(st.secrets["AIRTABLE_BASE_ID"], st.secrets["AIRTABLE_TABLE_NAME"])
+except Exception as e:
+    st.error(f"Airtable Error: {e}")
+    st.stop()
 
-  const DEMO_PASS = 'admin123';
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      setOrders(StorageService.getOrders());
+# --- CUSTOM CSS (Translating React Design to Streamlit) ---
+st.markdown("""
+    <style>
+    /* 1. HIDE DEFAULT UI */
+    header, footer {visibility: hidden;}
+    
+    /* 2. MAIN CONTAINER STYLING */
+    .stApp {
+        background-color: #FAFAF5; /* Light Beige Background */
     }
-  }, [isAuthenticated]);
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password === DEMO_PASS) {
-      setIsAuthenticated(true);
-    } else {
-      alert('Incorrect password (hint: admin123)');
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 8rem !important; /* Space for fixed bottom nav */
     }
-  };
 
-  const productionData = useMemo(() => {
-    const pending = orders.filter(o => o.status !== 'Completed');
-    const counts: Record<string, number> = {};
-    pending.forEach(o => {
-      counts[o.flavor] = (counts[o.flavor] || 0) + o.quantity;
-    });
-    return Object.keys(counts).map(key => ({
-      name: key,
-      quantity: counts[key]
-    }));
-  }, [orders]);
-
-  const revenueEstimate = useMemo(() => {
-    const pendingUnits = orders
-      .filter(o => o.status !== 'Completed')
-      .reduce((sum, o) => sum + o.quantity, 0);
-    return pendingUnits * 50; 
-  }, [orders]);
-
-  const startEdit = (order: Order) => {
-    setEditingId(order.id);
-    setEditStatus(order.status);
-    setEditDate(order.arrivalDate);
-  };
-
-  const saveEdit = () => {
-    if (editingId) {
-      StorageService.updateOrder(editingId, {
-        status: editStatus,
-        arrivalDate: editDate
-      });
-      setOrders(StorageService.getOrders());
-      setEditingId(null);
+    /* 3. HEADER STYLING */
+    .header-container {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(10px);
+        padding: 20px;
+        border-bottom: 1px solid white;
+        margin: -1rem -1rem 2rem -1rem; /* Stretch to edges */
     }
-  };
+    .logo-box {
+        width: 40px; 
+        height: 40px; 
+        background-color: #ffedd5; /* orange-100 */
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 20px;
+        margin-right: 12px;
+    }
+    .title-text { font-size: 20px; font-weight: 800; color: #292524; line-height: 1.2; }
+    .subtitle-text { font-size: 10px; font-weight: 700; color: #f97316; letter-spacing: 0.1em; text-transform: uppercase; }
+    .greeting-text { color: #a8a29e; font-size: 14px; font-weight: 500; margin-top: 8px; }
 
-  if (!isAuthenticated) {
-    return (
-      <div className="flex flex-col items-center justify-center py-10 animate-in fade-in duration-500">
-        <div className="bg-white p-4 rounded-full shadow-md mb-6">
-          <Lock className="w-8 h-8 text-stone-400" />
-        </div>
-        <h2 className="text-xl font-bold text-stone-700 mb-6">Admin Access</h2>
-        <form onSubmit={handleLogin} className="w-full max-w-xs">
-          <Input 
-            type="password" 
-            placeholder="Password" 
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            className="text-center"
-          />
-          <Button type="submit">Unlock Dashboard</Button>
-        </form>
-      </div>
-    );
-  }
+    /* 4. TABS AS BOTTOM NAVIGATION */
+    /* We trick Streamlit tabs to look like the bottom bar */
+    .stTabs {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: rgba(255,255,255,0.9);
+        backdrop-filter: blur(10px);
+        z-index: 999;
+        border-top: 1px solid #e5e5e5;
+        padding: 10px 10px 20px 10px;
+    }
+    .stTabs [data-baseweb="tab-list"] {
+        justify-content: space-around;
+        gap: 10px;
+        background-color: #f5f5f4; /* Stone-100 */
+        padding: 5px;
+        border-radius: 24px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        flex: 1;
+        height: 50px;
+        border-radius: 20px;
+        border: none;
+        background-color: transparent;
+        color: #78716c; /* Stone-500 */
+        font-weight: 700;
+        font-size: 12px;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #FF4B4B !important;
+        color: white !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* 5. CARD & BUTTON STYLING */
+    .stButton>button {
+        width: 100%;
+        border-radius: 24px;
+        height: 3.5rem;
+        font-weight: 700;
+        border: none;
+        background-color: #FF4B4B;
+        color: white;
+    }
+    .card {
+        background: white;
+        padding: 16px;
+        border-radius: 16px;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        margin-bottom: 12px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-  return (
-    <div className="animate-in slide-in-from-bottom-4 duration-500 space-y-6">
-      
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white p-5 rounded-3xl shadow-sm border border-stone-100 flex flex-col justify-between">
-            <div className="flex items-center gap-2 text-stone-500 mb-2">
-                <TrendingUp className="w-4 h-4" />
-                <span className="text-xs font-bold uppercase tracking-wider">Pending Units</span>
+# --- HEADER SECTION ---
+now = datetime.now()
+hour = now.hour
+if hour < 12: greeting = "Good Morning, Let's Brew! ☀️"
+elif hour < 18: greeting = "Good Afternoon, Keep Flowing! 🌊"
+else: greeting = "Good Evening, Cheers! 🍻"
+
+st.markdown(f"""
+    <div class="header-container">
+        <div style="display: flex; align-items: center;">
+            <div class="logo-box">🍺</div>
+            <div>
+                <div class="title-text">BoochBooch</div>
+                <div class="subtitle-text">Wholesale Portal</div>
             </div>
-            <span className="text-3xl font-extrabold text-stone-800">
-                {orders.filter(o => o.status !== 'Completed').reduce((sum, o) => sum + o.quantity, 0)}
-            </span>
         </div>
-        <div className="bg-white p-5 rounded-3xl shadow-sm border border-stone-100 flex flex-col justify-between">
-            <div className="flex items-center gap-2 text-stone-500 mb-2">
-                <DollarSign className="w-4 h-4" />
-                <span className="text-xs font-bold uppercase tracking-wider">Est. Revenue</span>
-            </div>
-            <span className="text-3xl font-extrabold text-stone-800">
-                ${revenueEstimate.toLocaleString()}
-            </span>
-        </div>
-      </div>
-
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-stone-100">
-        <h3 className="font-bold text-stone-700 mb-4">Production Plan (Pending)</h3>
-        {productionData.length > 0 ? (
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={productionData}>
-                <XAxis dataKey="name" tick={{fill: '#78716c', fontSize: 12}} axisLine={false} tickLine={false} />
-                <YAxis hide />
-                <Tooltip 
-                    cursor={{fill: '#f5f5f4'}}
-                    contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'}}
-                />
-                <Bar dataKey="quantity" radius={[8, 8, 8, 8]}>
-                    {productionData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        ) : (
-            <div className="text-center py-10 text-stone-400">All caught up! No pending orders.</div>
-        )}
-      </div>
-
-      <div className="bg-white p-6 rounded-3xl shadow-sm border border-stone-100">
-        <h3 className="font-bold text-stone-700 mb-4 flex items-center gap-2">
-            <Settings className="w-5 h-5 text-stone-400" />
-            Manage Orders
-        </h3>
-        <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-          {orders.map(order => (
-            <div key={order.id} className="p-4 border border-stone-100 rounded-2xl bg-stone-50">
-              {editingId === order.id ? (
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-stone-800">{order.clientName}</span>
-                    <button onClick={() => setEditingId(null)} className="text-xs text-stone-400 hover:text-stone-600">Cancel</button>
-                  </div>
-                  <Select 
-                    options={['Pending', 'In Production', 'Completed']} 
-                    value={editStatus}
-                    onChange={e => setEditStatus(e.target.value as OrderStatus)}
-                    className="text-sm py-2"
-                  />
-                  <Input 
-                    value={editDate}
-                    onChange={e => setEditDate(e.target.value)}
-                    placeholder="YYYY-MM-DD"
-                    className="text-sm py-2"
-                  />
-                  <Button onClick={saveEdit} className="h-10 text-sm">Save Changes</Button>
-                </div>
-              ) : (
-                <div className="flex justify-between items-center">
-                  <div>
-                    <div className="font-bold text-stone-700">{order.clientName}</div>
-                    <div className="text-xs text-stone-500">{order.flavor} ({order.quantity})</div>
-                    <div className="text-xs text-orange-500 font-semibold mt-1">{order.status}</div>
-                  </div>
-                  <button 
-                    onClick={() => startEdit(order)}
-                    className="px-4 py-2 bg-white rounded-xl text-sm font-bold text-stone-600 shadow-sm border border-stone-200 hover:bg-stone-50"
-                  >
-                    Edit
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+        <div class="greeting-text">{greeting}</div>
     </div>
-  );
-};
+""", unsafe_allow_html=True)
+
+# --- MAIN CONTENT ---
+# Note: Streamlit renders tabs from top to bottom, but our CSS moves them to the bottom!
+tab_order, tab_status, tab_admin = st.tabs(["🛒 Order", "🚚 Status", "🔒 Admin"])
+
+# ==========================================
+# TAB 1: ORDER
+# ==========================================
+with tab_order:
+    st.markdown("<br>", unsafe_allow_html=True) # Spacing for fixed header
+    with st.container():
+        st.markdown("### New Order")
+        with st.form("order_form", clear_on_submit=True):
+            name = st.text_input("Business Name")
+            code = st.text_input("Secret Code", type="password")
+            
+            c1, c2 = st.columns(2)
+            with c1: flavor = st.selectbox("Flavor", ["Original", "Peach", "Ginger", "Berry"])
+            with c2: size = st.selectbox("Size", ["24-Pack", "48-Pack", "Keg"])
+            
+            qty = st.number_input("Quantity", min_value=1, value=1)
+            submit = st.form_submit_button("Place Order")
+            
+            if submit:
+                if not name or not code:
+                    st.warning("Details missing!")
+                else:
+                    try:
+                        table.create({
+                            "Client Name": name, "Client Code": code,
+                            "Flavor": flavor, "Size": size, "Quantity": qty,
+                            "Status": "Pending", "Arrival Date": "TBD",
+                            "Order Date": datetime.now().strftime("%Y-%m-%d")
+                        })
+                        st.success(f"Order for {flavor} placed!")
+                        st.balloons()
+                    except Exception as e:
+                        st.error(f"Airtable Error: {e}")
+
+# ==========================================
+# TAB 2: STATUS
+# ==========================================
+with tab_status:
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("### Track Orders")
+    
+    with st.expander("🔐 Login to View", expanded=True):
+        s_name = st.text_input("Business Name", key="s_n")
+        s_code = st.text_input("Secret Code", type="password", key="s_c")
+        
+        if st.button("Check Status"):
+            try:
+                records = table.all()
+                my_orders = [r['fields'] for r in records if r['fields'].get('Client Name') == s_name and r['fields'].get('Client Code') == s_code]
+                
+                if my_orders:
+                    st.success(f"Found {len(my_orders)} orders")
+                    for o in reversed(my_orders):
+                        status_color = "#22c55e" if o.get('Status') == 'Completed' else "#f97316"
+                        st.markdown(f"""
+                        <div class="card">
+                            <div style="display:flex; justify-content:space-between; font-weight:bold;">
+                                <span>{o.get('Flavor')}</span>
+                                <span style="color:{status_color}">{o.get('Status', 'Pending')}</span>
+                            </div>
+                            <div style="color:#78716c; font-size:0.9em;">
+                                {o.get('Size')} • Qty: {o.get('Quantity')}
+                            </div>
+                            <div style="margin-top:8px; font-size:0.8em; color:#a8a29e;">
+                                📅 Arrival: {o.get('Arrival Date', 'TBD')}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.info("No orders found.")
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+# ==========================================
+# TAB 3: ADMIN
+# ==========================================
+with tab_admin:
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("### Admin Dashboard")
+    
+    pwd = st.text_input("Password", type="password")
+    if pwd == st.secrets["admin_password"]:
+        try:
+            raw = table.all()
+            if raw:
+                df = pd.DataFrame([r['fields'] for r in raw])
+                
+                # Production Stats
+                if "Status" in df.columns:
+                    pending = df[df["Status"] != "Completed"]
+                    if not pending.empty:
+                        st.markdown("##### 🏭 Production Needs")
+                        totals = pending.groupby("Flavor")["Quantity"].sum()
+                        st.bar_chart(totals)
+                
+                # Update Tool
+                st.divider()
+                st.markdown("##### ✏️ Update Order")
+                order_map = {r['id']: f"{r['fields'].get('Client Name')} | {r['fields'].get('Flavor')}" for r in raw}
+                sel_id = st.selectbox("Select Order", list(order_map.keys()), format_func=lambda x: order_map[x])
+                
+                if sel_id:
+                    c1, c2 = st.columns(2)
+                    with c1: n_stat = st.selectbox("Status", ["Pending", "In Production", "Shipped", "Completed"])
+                    with c2: n_date = st.text_input("Arrival Date", value="Friday")
+                    
+                    if st.button("Update"):
+                        table.update(sel_id, {"Status": n_stat, "Arrival Date": n_date})
+                        st.success("Updated!")
+                        st.rerun()
+        except Exception as e:
+            st.error(f"Airtable Error: {e}")
