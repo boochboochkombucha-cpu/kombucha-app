@@ -258,4 +258,4 @@ with tab3:
                         st.success("Order Updated!")
                         st.rerun()
         except Exception as e:
-            st.error("Database empty or connection error.")
+            st.error("f"Airtable Error: {e}")
