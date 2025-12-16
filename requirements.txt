@@ -1,3 +1,4 @@
 streamlit
 pandas
-pyairtable 
+streamlit-gsheets
+st-gsheets-connection
