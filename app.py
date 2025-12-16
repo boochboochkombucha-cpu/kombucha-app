@@ -14,102 +14,98 @@ except Exception as e:
     st.error(f"Airtable Error: {e}")
     st.stop()
 
-# --- CUSTOM CSS (Translating React Design to Streamlit) ---
+# --- CUSTOM CSS (THE MOBILE LAYOUT) ---
 st.markdown("""
     <style>
-    /* 1. HIDE DEFAULT UI */
+    /* 1. RESET STREAMLIT DEFAULTS */
     header, footer {visibility: hidden;}
-    
-    /* 2. MAIN CONTAINER STYLING */
     .stApp {
-        background-color: #FAFAF5; /* Light Beige Background */
+        background-color: #FAFAF5; /* Light Beige */
     }
+    
+    /* 2. MAIN CONTENT PADDING (To avoid overlap with fixed header/footer) */
     .block-container {
-        padding-top: 1rem !important;
-        padding-bottom: 8rem !important; /* Space for fixed bottom nav */
+        padding-top: 6rem !important; /* Space for Header */
+        padding-bottom: 6rem !important; /* Space for Bottom Nav */
     }
 
-    /* 3. HEADER STYLING */
+    /* 3. STICKY HEADER (Glassmorphism) */
     .header-container {
-        position: sticky;
+        position: fixed;
         top: 0;
-        z-index: 100;
-        background: rgba(255, 255, 255, 0.5);
-        backdrop-filter: blur(10px);
-        padding: 20px;
+        left: 0;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        z-index: 999;
         border-bottom: 1px solid white;
-        margin: -1rem -1rem 2rem -1rem; /* Stretch to edges */
+        padding: 15px 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
-    .logo-box {
-        width: 40px; 
-        height: 40px; 
-        background-color: #ffedd5; /* orange-100 */
-        border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 20px;
-        margin-right: 12px;
+    .header-content {
+        max-width: 700px; /* Match Streamlit's 'centered' layout width */
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
-    .title-text { font-size: 20px; font-weight: 800; color: #292524; line-height: 1.2; }
-    .subtitle-text { font-size: 10px; font-weight: 700; color: #f97316; letter-spacing: 0.1em; text-transform: uppercase; }
-    .greeting-text { color: #a8a29e; font-size: 14px; font-weight: 500; margin-top: 8px; }
-
-    /* 4. TABS AS BOTTOM NAVIGATION */
-    /* We trick Streamlit tabs to look like the bottom bar */
+    
+    /* 4. FIXED BOTTOM NAVIGATION BAR */
+    /* This hacks the standard Streamlit tabs to move them to the bottom */
     .stTabs {
         position: fixed;
         bottom: 0;
         left: 0;
         width: 100%;
-        background: rgba(255,255,255,0.9);
-        backdrop-filter: blur(10px);
-        z-index: 999;
+        background: rgba(255, 255, 255, 0.95);
         border-top: 1px solid #e5e5e5;
-        padding: 10px 10px 20px 10px;
+        z-index: 999;
+        padding: 10px 0 25px 0; /* Extra padding for iPhone home bar */
     }
     .stTabs [data-baseweb="tab-list"] {
-        justify-content: space-around;
-        gap: 10px;
-        background-color: #f5f5f4; /* Stone-100 */
-        padding: 5px;
-        border-radius: 24px;
+        max-width: 700px;
+        margin: 0 auto;
+        gap: 8px;
+        background-color: transparent;
+        padding: 0 10px;
     }
     .stTabs [data-baseweb="tab"] {
         flex: 1;
         height: 50px;
-        border-radius: 20px;
-        border: none;
         background-color: transparent;
-        color: #78716c; /* Stone-500 */
-        font-weight: 700;
+        border: none;
+        color: #78716c; /* Gray text */
         font-size: 12px;
+        font-weight: 600;
+        flex-direction: column; /* Stack icon and text if possible */
+        border-radius: 12px;
     }
     .stTabs [aria-selected="true"] {
         background-color: #FF4B4B !important;
         color: white !important;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
-    
-    /* 5. CARD & BUTTON STYLING */
+
+    /* 5. COMPONENTS STYLING */
     .stButton>button {
         width: 100%;
-        border-radius: 24px;
+        border-radius: 16px;
         height: 3.5rem;
         font-weight: 700;
         border: none;
+        box-shadow: 0 4px 6px -1px rgba(255, 75, 75, 0.2);
         background-color: #FF4B4B;
         color: white;
     }
-    .card {
-        background: white;
-        padding: 16px;
+    
+    /* Cards */
+    div[data-testid="stVerticalBlock"] > div[style*="background-color"] {
         border-radius: 16px;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-        margin-bottom: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- HEADER SECTION ---
+# --- HEADER SECTION (HTML) ---
 now = datetime.now()
 hour = now.hour
 if hour < 12: greeting = "Good Morning, Let's Brew! ☀️"
@@ -118,30 +114,34 @@ else: greeting = "Good Evening, Cheers! 🍻"
 
 st.markdown(f"""
     <div class="header-container">
-        <div style="display: flex; align-items: center;">
-            <div class="logo-box">🍺</div>
-            <div>
-                <div class="title-text">BoochBooch</div>
-                <div class="subtitle-text">Wholesale Portal</div>
+        <div class="header-content">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 40px; height: 40px; background: #ffedd5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">🍺</div>
+                <div>
+                    <div style="font-size: 18px; font-weight: 800; color: #292524; line-height: 1;">BoochBooch</div>
+                    <div style="font-size: 10px; font-weight: 700; color: #f97316; letter-spacing: 1px; text-transform: uppercase;">Wholesale Portal</div>
+                </div>
             </div>
+            <div style="font-size: 12px; font-weight: 500; color: #a8a29e;">{greeting}</div>
         </div>
-        <div class="greeting-text">{greeting}</div>
     </div>
 """, unsafe_allow_html=True)
 
-# --- MAIN CONTENT ---
-# Note: Streamlit renders tabs from top to bottom, but our CSS moves them to the bottom!
+# --- NAVIGATION & CONTENT ---
+# We use emojis in tabs to act as Icons
 tab_order, tab_status, tab_admin = st.tabs(["🛒 Order", "🚚 Status", "🔒 Admin"])
 
 # ==========================================
 # TAB 1: ORDER
 # ==========================================
 with tab_order:
-    st.markdown("<br>", unsafe_allow_html=True) # Spacing for fixed header
+    st.markdown("### New Order")
     with st.container():
-        st.markdown("### New Order")
+        # Add a white background card effect
+        st.markdown('<div style="background:white; padding:20px; border-radius:16px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">', unsafe_allow_html=True)
+        
         with st.form("order_form", clear_on_submit=True):
-            name = st.text_input("Business Name")
+            name = st.text_input("Business Name", placeholder="e.g. Cafe A")
             code = st.text_input("Secret Code", type="password")
             
             c1, c2 = st.columns(2)
@@ -149,11 +149,13 @@ with tab_order:
             with c2: size = st.selectbox("Size", ["24-Pack", "48-Pack", "Keg"])
             
             qty = st.number_input("Quantity", min_value=1, value=1)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
             submit = st.form_submit_button("Place Order")
             
             if submit:
                 if not name or not code:
-                    st.warning("Details missing!")
+                    st.warning("Please enter Name and Code")
                 else:
                     try:
                         table.create({
@@ -166,19 +168,20 @@ with tab_order:
                         st.balloons()
                     except Exception as e:
                         st.error(f"Airtable Error: {e}")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
 # TAB 2: STATUS
 # ==========================================
 with tab_status:
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("### Track Orders")
+    st.markdown("### My Orders")
     
-    with st.expander("🔐 Login to View", expanded=True):
+    with st.expander("🔍 Filter Orders", expanded=True):
         s_name = st.text_input("Business Name", key="s_n")
         s_code = st.text_input("Secret Code", type="password", key="s_c")
         
-        if st.button("Check Status"):
+        if st.button("Check"):
             try:
                 records = table.all()
                 my_orders = [r['fields'] for r in records if r['fields'].get('Client Name') == s_name and r['fields'].get('Client Code') == s_code]
@@ -186,18 +189,21 @@ with tab_status:
                 if my_orders:
                     st.success(f"Found {len(my_orders)} orders")
                     for o in reversed(my_orders):
+                        # CUSTOM CARD UI
                         status_color = "#22c55e" if o.get('Status') == 'Completed' else "#f97316"
                         st.markdown(f"""
-                        <div class="card">
-                            <div style="display:flex; justify-content:space-between; font-weight:bold;">
-                                <span>{o.get('Flavor')}</span>
-                                <span style="color:{status_color}">{o.get('Status', 'Pending')}</span>
+                        <div style="background:white; padding:16px; border-radius:16px; margin-bottom:12px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                <span style="font-weight:700; font-size:16px;">{o.get('Flavor')}</span>
+                                <span style="background:{status_color}20; color:{status_color}; padding:4px 8px; border-radius:8px; font-size:12px; font-weight:700;">
+                                    {o.get('Status', 'Pending')}
+                                </span>
                             </div>
-                            <div style="color:#78716c; font-size:0.9em;">
+                            <div style="color:#78716c; font-size:14px; margin-bottom:4px;">
                                 {o.get('Size')} • Qty: {o.get('Quantity')}
                             </div>
-                            <div style="margin-top:8px; font-size:0.8em; color:#a8a29e;">
-                                📅 Arrival: {o.get('Arrival Date', 'TBD')}
+                            <div style="font-size:12px; color:#a8a29e;">
+                                📅 Expected: {o.get('Arrival Date', 'TBD')}
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
@@ -210,27 +216,30 @@ with tab_status:
 # TAB 3: ADMIN
 # ==========================================
 with tab_admin:
-    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("### Admin Dashboard")
     
     pwd = st.text_input("Password", type="password")
+    
     if pwd == st.secrets["admin_password"]:
         try:
             raw = table.all()
             if raw:
                 df = pd.DataFrame([r['fields'] for r in raw])
                 
-                # Production Stats
+                # Stats Card
                 if "Status" in df.columns:
                     pending = df[df["Status"] != "Completed"]
                     if not pending.empty:
+                        st.markdown('<div style="background:white; padding:20px; border-radius:16px; margin-bottom:20px;">', unsafe_allow_html=True)
                         st.markdown("##### 🏭 Production Needs")
                         totals = pending.groupby("Flavor")["Quantity"].sum()
                         st.bar_chart(totals)
+                        st.markdown('</div>', unsafe_allow_html=True)
                 
-                # Update Tool
-                st.divider()
+                # Update Card
+                st.markdown('<div style="background:white; padding:20px; border-radius:16px;">', unsafe_allow_html=True)
                 st.markdown("##### ✏️ Update Order")
+                
                 order_map = {r['id']: f"{r['fields'].get('Client Name')} | {r['fields'].get('Flavor')}" for r in raw}
                 sel_id = st.selectbox("Select Order", list(order_map.keys()), format_func=lambda x: order_map[x])
                 
@@ -243,5 +252,6 @@ with tab_admin:
                         table.update(sel_id, {"Status": n_stat, "Arrival Date": n_date})
                         st.success("Updated!")
                         st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
         except Exception as e:
             st.error(f"Airtable Error: {e}")
