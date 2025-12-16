@@ -1,69 +1,98 @@
-import React, { useState, useEffect } from 'react';
-import { OrderTab } from './components/OrderTab';
-import { StatusTab } from './components/StatusTab';
-import { AdminTab } from './components/AdminTab';
+import streamlit as st
+import datetime
 
-type Tab = 'order' | 'status' | 'admin';
+# Page configuration
+st.set_page_config(page_title="BoochBooch Wholesale Portal", page_icon="🍺", layout="centered")
 
-const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<Tab>('order');
-  const [greeting, setGreeting] = useState('Good Morning');
+# Styling to mimic the original look as much as possible using custom CSS
+st.markdown("""
+    <style>
+    .header-container {
+        display: flex;
+        align-items: center;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #f0f0f0;
+        margin-bottom: 1rem;
+    }
+    .logo {
+        width: 40px;
+        height: 40px;
+        background-color: #ffedd5; /* orange-100 */
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-right: 12px;
+    }
+    .title-container {
+        display: flex;
+        flex-direction: column;
+    }
+    .app-title {
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1.25;
+        color: #292524; /* stone-800 */
+        margin: 0;
+    }
+    .subtitle {
+        font-size: 10px;
+        font-weight: 700;
+        color: #f97316; /* orange-500 */
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin: 0;
+    }
+    .greeting {
+        color: #a8a29e; /* stone-400 */
+        font-size: 14px;
+        font-weight: 500;
+        margin-top: 8px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-  useEffect(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) setGreeting("Good Morning, Let's Brew!");
-    else if (hour < 18) setGreeting("Good Afternoon, Keep Flowing!");
-    else setGreeting("Good Evening, Cheers!");
-  }, []);
+# Logic for greeting
+now = datetime.datetime.now()
+hour = now.hour
 
-  return (
-    <div className="min-h-screen bg-[#FAFAF5] text-[#4a4a4a] pb-24">
-      {/* Header */}
-      <div className="px-6 pt-8 pb-4 bg-white/50 backdrop-blur-md sticky top-0 z-10 border-b border-white">
-        <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-2xl">
-                🍺
-            </div>
-            <div>
-                <h1 className="text-xl font-extrabold leading-tight text-stone-800">BoochBooch</h1>
-                <p className="text-xs font-bold text-orange-500 uppercase tracking-widest">Wholesale Portal</p>
-            </div>
+if hour < 12:
+    greeting_text = "Good Morning, Let's Brew!"
+elif hour < 18:
+    greeting_text = "Good Afternoon, Keep Flowing!"
+else:
+    greeting_text = "Good Evening, Cheers!"
+
+# Header
+st.markdown(f"""
+    <div class="header-container">
+        <div class="logo">
+            🍺
         </div>
-        <p className="text-stone-400 text-sm font-medium mt-2">{greeting}</p>
-      </div>
-
-      {/* Main Content Area */}
-      <main className="px-4 pt-6 max-w-md mx-auto">
-        {activeTab === 'order' && <OrderTab />}
-        {activeTab === 'status' && <StatusTab />}
-        {activeTab === 'admin' && <AdminTab />}
-      </main>
-
-      {/* Navigation Tabs (Fixed Bottom) */}
-      <div className="fixed bottom-0 left-0 w-full bg-white/80 backdrop-blur-lg border-t border-stone-100 p-2 z-50">
-        <div className="flex justify-between max-w-md mx-auto bg-stone-100/50 p-1 rounded-3xl">
-          <button 
-            onClick={() => setActiveTab('order')}
-            className={`flex-1 py-3 rounded-2xl font-bold text-sm transition-all duration-300 ${activeTab === 'order' ? 'bg-[#FF4B4B] text-white shadow-md transform scale-105' : 'text-stone-500 hover:text-stone-800'}`}
-          >
-            🛒 Order
-          </button>
-          <button 
-            onClick={() => setActiveTab('status')}
-            className={`flex-1 py-3 rounded-2xl font-bold text-sm transition-all duration-300 ${activeTab === 'status' ? 'bg-[#FF4B4B] text-white shadow-md transform scale-105' : 'text-stone-500 hover:text-stone-800'}`}
-          >
-            🚚 Status
-          </button>
-          <button 
-            onClick={() => setActiveTab('admin')}
-            className={`flex-1 py-3 rounded-2xl font-bold text-sm transition-all duration-300 ${activeTab === 'admin' ? 'bg-[#FF4B4B] text-white shadow-md transform scale-105' : 'text-stone-500 hover:text-stone-800'}`}
-          >
-            🔒 Admin
-          </button>
+        <div class="title-container">
+            <h1 class="app-title">BoochBooch</h1>
+            <p class="subtitle">Wholesale Portal</p>
         </div>
-      </div>
     </div>
-  );
-};
+    <p class="greeting">{greeting_text}</p>
+""", unsafe_allow_html=True)
 
-export default App;
+# Tabs
+tab1, tab2, tab3 = st.tabs(["🛒 Order", "🚚 Status", "🔒 Admin"])
+
+with tab1:
+    st.header("Order")
+    st.info("Order component placeholder. The original React component `OrderTab` was missing.")
+    # You could add some dummy content here to make it look active
+    st.write("Browse our selection of hard kombuchas.")
+
+with tab2:
+    st.header("Status")
+    st.info("Status component placeholder. The original React component `StatusTab` was missing.")
+    st.write("Track your recent orders here.")
+
+with tab3:
+    st.header("Admin")
+    st.info("Admin component placeholder. The original React component `AdminTab` was missing.")
+    st.write("Manage inventory and users.")
