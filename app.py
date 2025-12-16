@@ -15,17 +15,73 @@ except Exception as e:
     st.error("⚠️ Connection Error: Could not connect to Airtable. Check your Secrets.")
     st.stop()
 
-# --- CUSTOM CSS (To hide default header and make it look like an app) ---
+# --- CUSTOM CSS (MAKE IT LOOK LIKE AN APP) ---
 st.markdown("""
     <style>
-    .block-container {padding-top: 1rem; padding-bottom: 0rem;} 
-    .stTabs [data-baseweb="tab-list"] {gap: 10px;}
-    .stTabs [data-baseweb="tab"] {height: 50px; white-space: pre-wrap; background-color: #f0f2f6; border-radius: 5px;}
+    /* 1. Hide the top header bar and footer */
+    header {visibility: hidden;}
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    
+    /* 2. Remove extra whitespace at the top to fit phone screens better */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 5rem !important;
+    }
+    
+    /* 3. Style the Tabs to look like App Navigation Pills */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background-color: transparent;
+        padding-bottom: 10px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        white-space: pre-wrap;
+        background-color: #f0f2f6; /* Light grey background */
+        border-radius: 20px;
+        color: #4a4a4a;
+        font-weight: 600;
+        border: none;
+        flex: 1; /* Stretch tabs to fill width */
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #FF4B4B !important; /* Your Brand Color (Change this!) */
+        color: white !important;
+    }
+    
+    /* 4. Make Buttons look like "Pills" (Round & Big) */
+    .stButton>button {
+        width: 100%;
+        border-radius: 50px;
+        height: 3.5em;
+        font-weight: bold;
+        border: none;
+        box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
+        transition: transform 0.1s;
+    }
+    .stButton>button:active {
+        transform: scale(0.98); /* Click effect */
+    }
+
+    /* 5. Card Styling for Orders */
+    [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > [data-testid="stVerticalBlock"] {
+        border: 1px solid #f0f2f6;
+        background-color: white;
+        padding: 15px;
+        border-radius: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# --- APP TITLE ---
-st.title("🍺 BoochBooch Orders")
+# --- APP HEADER ---
+# Use columns to put a logo next to the title (if you have a logo URL)
+col1, col2 = st.columns([1, 4])
+with col1:
+    st.write("🍺") # Or st.image("YOUR_LOGO_URL.png")
+with col2:
+    st.markdown("### BoochBooch\n**Wholesale Portal**")
 
 # --- NAVIGATION TABS ---
 tab1, tab2, tab3 = st.tabs(["🛒 Order", "🚚 Status", "🔒 Admin"])
